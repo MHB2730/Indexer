@@ -27,6 +27,7 @@ tests/out/
 # Editor
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 
