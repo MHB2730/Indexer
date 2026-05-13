@@ -8,6 +8,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QFontDatabase, QIcon
 from PySide6.QtWidgets import QApplication
 
+from . import __version__
+from .logging_setup import configure as configure_logging
 from .ui.disclaimer import DisclaimerDialog
 from .ui.main_window import MainWindow
 from .ui.update_dialog import UpdateDialog
@@ -24,6 +26,11 @@ def _load_stylesheet() -> str:
 
 
 def main() -> int:
+    log_path = configure_logging()
+    import logging
+    logging.getLogger(__name__).info("Indexer %s starting (log: %s)",
+                                     __version__, log_path)
+
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )

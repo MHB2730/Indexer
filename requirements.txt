@@ -5,3 +5,4 @@ rank-bm25>=0.2.2
 dateparser>=1.2
 click>=8.1
 PySide6>=6.6
+docx2pdf>=0.1.8

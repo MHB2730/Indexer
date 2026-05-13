@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtCore import QThread
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from .about_dialog import AboutDialog
 from .step_build import BuildStep
 from .step_review import ReviewStep
 from .step_select import SelectStep
@@ -45,6 +47,13 @@ class MainWindow(QMainWindow):
         self.build_step = BuildStep()
         for w in (self.select_step, self.review_step, self.build_step):
             self.stack.addWidget(w)
+
+        # Menu bar — Help → About
+        menubar = self.menuBar()
+        help_menu = menubar.addMenu("&Help")
+        about_action = QAction("&About Indexer…", self)
+        about_action.triggered.connect(self._show_about)
+        help_menu.addAction(about_action)
 
         self.select_step.proceed.connect(self._on_select_proceed)
         self.review_step.back.connect(lambda: self._go(0))
@@ -126,3 +135,6 @@ class MainWindow(QMainWindow):
 
     def _show_error(self, msg: str) -> None:
         QMessageBox.critical(self, "Error", msg)
+
+    def _show_about(self) -> None:
+        AboutDialog(self).exec()

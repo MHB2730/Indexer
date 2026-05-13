@@ -60,15 +60,22 @@ class BuildStep(QWidget):
         self.open_btn = QPushButton("Open output folder")
         self.open_btn.setEnabled(False)
         self.open_btn.clicked.connect(self._open_folder)
+        self.open_bundle_btn = QPushButton("Open bundle.pdf")
+        self.open_bundle_btn.setEnabled(False)
+        self.open_bundle_btn.clicked.connect(self._open_bundle)
         self.again_btn = QPushButton("Start another bundle")
         self.again_btn.setObjectName("Primary")
+        self.again_btn.setMinimumHeight(40)
         self.again_btn.setEnabled(False)
         self.again_btn.clicked.connect(self.restart.emit)
         row.addWidget(self.open_btn)
+        row.addWidget(self.open_bundle_btn)
         row.addStretch(1)
         row.addWidget(self.again_btn)
         outer.addLayout(row)
         outer.addStretch(1)
+
+        self._bundle_path: Path | None = None
 
     def show_running(self, out_dir: Path) -> None:
         self._out_dir = out_dir
@@ -85,11 +92,19 @@ class BuildStep(QWidget):
         u = len(report["unresolved"])
         self.title.setText("Bundle ready")
         lines = [
-            f"<b>{n}</b> annexures copied, renamed, and indexed.",
+            f"<b>{n}</b> annexures copied, renamed and stamped.",
+            f"Output folder: <code>{report['out_dir']}</code>",
         ]
+        bundle_pdf = report.get("bundle_pdf")
+        if bundle_pdf:
+            lines.append(f"Merged bundle: <code>{bundle_pdf}</code>")
+            self._bundle_path = Path(bundle_pdf)
+            self.open_bundle_btn.setEnabled(True)
+        else:
+            self._bundle_path = None
+            self.open_bundle_btn.setEnabled(False)
         if u:
             lines.append(f"<b>{u}</b> annexure(s) were skipped — see <i>report.json</i>.")
-        lines.append(f"Output folder: <code>{report['out_dir']}</code>")
         lines.append("")
         lines.append("Files written:")
         for e in report["entries"]:
@@ -106,12 +121,19 @@ class BuildStep(QWidget):
         self.again_btn.setEnabled(True)
 
     def _open_folder(self) -> None:
-        if not self._out_dir:
-            return
-        path = str(self._out_dir)
+        if self._out_dir:
+            self._launch(self._out_dir)
+
+    def _open_bundle(self) -> None:
+        if self._bundle_path and self._bundle_path.exists():
+            self._launch(self._bundle_path)
+
+    @staticmethod
+    def _launch(path: Path) -> None:
+        p = str(path)
         if sys.platform.startswith("win"):
-            os.startfile(path)  # type: ignore[attr-defined]
+            os.startfile(p)  # type: ignore[attr-defined]
         elif sys.platform == "darwin":
-            subprocess.Popen(["open", path])
+            subprocess.Popen(["open", p])
         else:
-            subprocess.Popen(["xdg-open", path])
+            subprocess.Popen(["xdg-open", p])
