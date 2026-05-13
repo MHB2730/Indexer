@@ -47,6 +47,33 @@ end users.
   .\build.ps1 -InnoSetup "D:\Tools\Inno\ISCC.exe"
   ```
 
+## Cutting a release (auto-update channel)
+
+The app checks https://github.com/MHB2730/Indexer/releases on launch. To
+publish a new version that all installed apps will pick up:
+
+1. Bump `__version__` in [src/indexer/__init__.py](src/indexer/__init__.py) — e.g. `"0.2.0"`.
+2. Commit and push:
+   ```powershell
+   git add src/indexer/__init__.py
+   git commit -m "Bump to 0.2.0"
+   git push
+   ```
+3. Tag and push the tag:
+   ```powershell
+   git tag v0.2.0
+   git push --tags
+   ```
+
+GitHub Actions ([.github/workflows/release.yml](.github/workflows/release.yml))
+runs automatically: builds the installer with version stamping, creates a
+GitHub Release, and attaches `IndexerSetup.exe`. Within seconds of the
+workflow finishing, every running Indexer will offer the update on its
+next launch.
+
+**Important**: the tag must match `__version__` exactly. The workflow
+fails fast if they disagree, to prevent shipping a broken update channel.
+
 ## Code signing (optional, recommended for distribution)
 
 Unsigned installers trigger a SmartScreen warning. To sign:

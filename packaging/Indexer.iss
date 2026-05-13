@@ -5,7 +5,9 @@
 ; Output: packaging\Output\IndexerSetup.exe
 
 #define MyAppName        "Indexer"
-#define MyAppVersion     "0.1.0"
+#ifndef MyAppVersion
+  #define MyAppVersion   "0.1.0"
+#endif
 #define MyAppPublisher   "Indexer"
 #define MyAppExeName     "Indexer.exe"
 

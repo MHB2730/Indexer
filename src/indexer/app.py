@@ -10,6 +10,8 @@ from PySide6.QtWidgets import QApplication
 
 from .ui.disclaimer import DisclaimerDialog
 from .ui.main_window import MainWindow
+from .ui.update_dialog import UpdateDialog
+from .updater import check_for_update
 
 APP_NAME = "Indexer"
 ORG_NAME = "Indexer"
@@ -44,6 +46,10 @@ def main() -> int:
     dlg = DisclaimerDialog()
     if dlg.exec() != dlg.DialogCode.Accepted:
         return 0
+
+    update = check_for_update()
+    if update is not None:
+        UpdateDialog(update).exec()  # may sys.exit() if user clicks Install now
 
     win = MainWindow()
     win.show()

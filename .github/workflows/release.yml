@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Derive version from tag
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"          # e.g. v0.2.0
+          $version = $tag.TrimStart('v')
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+          echo "Building Indexer $version"
+
+      - name: Verify version matches src/indexer/__init__.py
+        shell: pwsh
+        run: |
+          $expected = "${{ steps.ver.outputs.version }}"
+          $line = Select-String -Path src/indexer/__init__.py -Pattern '__version__\s*=\s*"([^"]+)"'
+          $found = $line.Matches[0].Groups[1].Value
+          if ($found -ne $expected) {
+            Write-Error "Tag v$expected does not match __version__='$found' in src/indexer/__init__.py"
+            exit 1
+          }
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pillow pyinstaller
+
+      - name: Render brand icons
+        run: python scripts/make_icons.py
+
+      - name: Build executable with PyInstaller
+        run: python -m PyInstaller packaging/Indexer.spec --clean --noconfirm
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress -y
+
+      - name: Compile installer with version
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DMyAppVersion=${{ steps.ver.outputs.version }}" packaging/Indexer.iss
+
+      - name: Upload installer as release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Indexer ${{ steps.ver.outputs.version }}
+          files: packaging/Output/IndexerSetup.exe
+          generate_release_notes: true
