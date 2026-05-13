@@ -97,6 +97,22 @@ python scripts\make_icons.py
 python -m indexer.app
 ```
 
+## Optional: install Tesseract OCR (recommended)
+
+Indexer falls back to OCR for any PDF page that has little or no
+extractable text — typical for scanned annexures from a photocopier.
+Without OCR, those files contribute almost nothing to matching.
+
+1. Download the latest **64-bit Windows installer** from
+   https://github.com/UB-Mannheim/tesseract/wiki — e.g.
+   `tesseract-ocr-w64-setup-5.x.x.exe`.
+2. Run it with all defaults. Make sure the installer's
+   "Add Tesseract to PATH" option is ticked.
+3. Indexer auto-detects Tesseract on launch. No further config needed.
+
+(v0.2.0 will bundle Tesseract inside the Indexer installer so this
+step disappears.)
+
 ## Sanity-check the engine
 
 ```powershell

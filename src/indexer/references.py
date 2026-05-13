@@ -57,10 +57,42 @@ class Reference:
     title: str = ""
     mentions: int = 0
     spans: list[tuple[int, int]] = field(default_factory=list)
+    context: str = ""   # rich text around each mention — used by matcher
+
+
+MAX_MENTIONS_FOR_CONTEXT = 5
+_SENT_END = re.compile(r"[.;\n\r]")
 
 
 def _norm(label: str) -> str:
     return label.strip(_LABEL_STRIPS).upper()
+
+
+def _sentence_around(text: str, span: tuple[int, int]) -> str:
+    """Return the single sentence/line containing this match position."""
+    s, e = span
+    # Walk left to nearest sentence terminator or start of text
+    start = s
+    while start > 0 and not _SENT_END.match(text[start - 1]):
+        start -= 1
+    end = e
+    while end < len(text) and not _SENT_END.match(text[end]):
+        end += 1
+    return text[start:end].strip()
+
+
+def _build_context(text: str, spans: list[tuple[int, int]]) -> str:
+    """Concatenate the sentences containing each mention (deduped)."""
+    if not spans:
+        return ""
+    seen: set[str] = set()
+    out: list[str] = []
+    for span in spans[:MAX_MENTIONS_FOR_CONTEXT]:
+        sentence = _sentence_around(text, span)
+        if sentence and sentence not in seen:
+            seen.add(sentence)
+            out.append(sentence)
+    return " ".join(out)
 
 
 def find_references(text: str) -> list[Reference]:
@@ -83,6 +115,9 @@ def find_references(text: str) -> list[Reference]:
         title = m.group("title").strip().rstrip(",;:")
         if label in refs and not refs[label].title:
             refs[label].title = title
+
+    for ref in refs.values():
+        ref.context = _build_context(text, ref.spans)
 
     return sorted(refs.values(), key=lambda r: _sort_key(r.label))
 
