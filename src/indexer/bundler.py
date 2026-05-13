@@ -224,12 +224,12 @@ def _write_index_pdf(entries: list[BundleEntry], path: Path) -> None:
 # ── main doc annotation ───────────────────────────────────────────
 
 _LABEL_PATTERN = re.compile(
-    r"""(?ix)
-    \b(?:annexure|annex|schedule)\s+
-    ["'“”‘’]?
-    ([A-Z]{1,4}\d{0,3}|\d{1,3})
-    ["'“”‘’]?
-    """
+    r"""
+    \b(?:annexure|annexures?|annex|annexe|schedule)\b
+    \s+
+    [\"'‘’“”«»]?\s*([A-Z]{1,4}\d{0,3}|\d{1,3})\s*[\"'‘’“”«»]?
+    """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 

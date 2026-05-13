@@ -4,44 +4,63 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# Matches: Annexure A, Annexure "FA1", Annexure 'B', Annexure 12, Annex A,
-# marked "FA1", marked 'A'.
+# Any quote character we might see — straight ASCII + Word's curly variants.
+#   U+0022 "   U+0027 '
+#   U+2018 ‘   U+2019 ’
+#   U+201C “   U+201D ”
+#   U+00AB «   U+00BB »
+_QUOTE = r"[\"'‘’“”«»]"
+
+# An annexure "label" is a short alphanumeric tag, e.g.
+#   A, B, FA1, AA2, MEK3, 12
 _LABEL = r"[A-Z]{1,4}\d{0,3}|\d{1,3}"
+
+# Word + space + (optional opening quote) + label + (optional closing quote)
 ANNEXURE_RE = re.compile(
-    rf"""(?ix)
-    \b
-    (?:annexure|annex|schedule)
+    rf"""
+    \b(?:annexure|annexures?|annex|annexe|schedule)\b
     \s+
-    ["'""]?(?P<label>{_LABEL})["'""]?
+    {_QUOTE}?\s*(?P<label>{_LABEL})\s*{_QUOTE}?
     """,
+    re.IGNORECASE | re.VERBOSE,
 )
+
+# "marked 'A'" / "marked "FA1"" — the label is quoted so we require quotes.
 MARKED_RE = re.compile(
-    rf"""(?ix)
-    \bmarked\s+["'""](?P<label>{_LABEL})["'""]
+    rf"""
+    \bmarked\b
+    \s+
+    {_QUOTE}\s*(?P<label>{_LABEL})\s*{_QUOTE}
     """,
+    re.IGNORECASE | re.VERBOSE,
 )
 
 # Title pattern: "Annexure A: Objection ..." or "Annexure A - Objection ..."
 TITLE_RE = re.compile(
-    rf"""(?ix)
-    \b(?:annexure|annex|schedule)\s+
-    ["'""]?(?P<label>{_LABEL})["'""]?
+    rf"""
+    \b(?:annexure|annexures?|annex|annexe|schedule)\b
+    \s+
+    {_QUOTE}?\s*(?P<label>{_LABEL})\s*{_QUOTE}?
     \s*[:\-–—]\s*
     (?P<title>[^\n\r.;]{{3,120}})
     """,
+    re.IGNORECASE | re.VERBOSE,
 )
+
+# Characters to strip when normalising a captured label.
+_LABEL_STRIPS = "\"'‘’“”«» "
 
 
 @dataclass
 class Reference:
-    label: str           # normalized, e.g. "A", "FA1", "12"
-    title: str = ""      # descriptive title if found
-    mentions: int = 0    # number of times referenced
-    spans: list[tuple[int, int]] = field(default_factory=list)  # (start, end) in source text
+    label: str
+    title: str = ""
+    mentions: int = 0
+    spans: list[tuple[int, int]] = field(default_factory=list)
 
 
 def _norm(label: str) -> str:
-    return label.strip().strip("\"'""").upper()
+    return label.strip(_LABEL_STRIPS).upper()
 
 
 def find_references(text: str) -> list[Reference]:
@@ -69,7 +88,6 @@ def find_references(text: str) -> list[Reference]:
 
 
 def _sort_key(label: str) -> tuple:
-    """Sort 'A' < 'B' < 'FA1' < '2' sensibly: letters first alpha, numbers numeric."""
     m = re.match(r"^([A-Z]*)(\d*)$", label)
     if not m:
         return (2, label)
