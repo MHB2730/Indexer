@@ -44,6 +44,9 @@ Write-Host ">>> Installing dependencies" -ForegroundColor Cyan
 Write-Host ">>> Fetching Tesseract OCR (bundled into the installer)" -ForegroundColor Cyan
 & powershell -ExecutionPolicy Bypass -File "$Root\scripts\fetch_tesseract.ps1"
 
+Write-Host ">>> Caching embedding model" -ForegroundColor Cyan
+& $python "$Root\scripts\fetch_embedding_model.py"
+
 Write-Host ">>> Rendering brand icons" -ForegroundColor Cyan
 & $python "$Root\scripts\make_icons.py"
 

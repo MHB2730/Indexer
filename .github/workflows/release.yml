@@ -76,6 +76,17 @@ jobs:
             exit 1
           }
 
+      - name: Cache embedding model
+        id: emb-cache
+        uses: actions/cache@v4
+        with:
+          path: vendor/embedding-model
+          key: bge-small-en-v1.5-v1
+
+      - name: Download embedding model
+        if: steps.emb-cache.outputs.cache-hit != 'true'
+        run: python scripts/fetch_embedding_model.py
+
       - name: Render brand icons
         run: python scripts/make_icons.py
 

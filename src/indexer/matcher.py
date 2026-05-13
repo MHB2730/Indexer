@@ -20,9 +20,11 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
+import numpy as np
 from rank_bm25 import BM25Okapi
 from rapidfuzz import fuzz
 
+from . import embedder
 from .parser import matching_text
 from .references import Reference
 
@@ -33,6 +35,7 @@ class CandidateScore:
     score: float            # 0..100
     filename_score: float
     content_score: float
+    semantic_score: float
     date_overlap: int
     noun_overlap: int
     label_hit: bool
@@ -143,7 +146,7 @@ class _CandidateIndex:
     nouns: set[str]
 
 
-def build_index(pool: list[Path]) -> list[_CandidateIndex]:
+def build_index(pool: list[Path]) -> tuple[list[_CandidateIndex], np.ndarray | None]:
     out: list[_CandidateIndex] = []
     for p in pool:
         text = matching_text(p)
@@ -155,7 +158,15 @@ def build_index(pool: list[Path]) -> list[_CandidateIndex]:
             dates=_extract_dates(text),
             nouns=_extract_nouns(text),
         ))
-    return out
+    # Semantic embeddings — one batch call for the whole pool.
+    if embedder.is_available() and out:
+        # Cap each candidate's text to keep the embedding focused on the
+        # discriminating content (typically the first ~800 words).
+        snippets = [(c.filename + ". " + c.text[:4000]) for c in out]
+        embeddings = embedder.embed(snippets)
+    else:
+        embeddings = None
+    return out, embeddings
 
 
 def _label_in_text(label: str, text: str) -> bool:
@@ -176,12 +187,38 @@ def _build_query(ref: Reference) -> str:
 
 
 def match_all(refs: list[Reference], pool: list[Path]) -> list[MatchResult]:
-    index = build_index(pool)
+    index, candidate_embeddings = build_index(pool)
     corpus = [c.tokens for c in index]
     bm25 = BM25Okapi(corpus) if corpus else None
 
+    # Pre-compute one embedding per reference (title + context window).
+    ref_queries_for_embedding: list[str] = []
+    for r in refs:
+        bits = []
+        if r.title:
+            bits.append(r.title)
+        if r.context:
+            bits.append(r.context)
+        ref_queries_for_embedding.append(" ".join(bits).strip() or f"annexure {r.label}")
+    if candidate_embeddings is not None and refs:
+        ref_embeddings = embedder.embed(ref_queries_for_embedding)
+    else:
+        ref_embeddings = None
+
+    have_semantic = (
+        ref_embeddings is not None
+        and candidate_embeddings is not None
+        and len(ref_embeddings) == len(refs)
+    )
+    if have_semantic:
+        sim_matrix = embedder.cosine_similarity_matrix(
+            ref_embeddings, candidate_embeddings
+        )
+    else:
+        sim_matrix = None
+
     results: list[MatchResult] = []
-    for ref in refs:
+    for ri, ref in enumerate(refs):
         query = _build_query(ref)
         query_tokens = _filter_tokens(_tokenize(query))
         ref_dates = _extract_dates(query)
@@ -195,26 +232,41 @@ def match_all(refs: list[Reference], pool: list[Path]) -> list[MatchResult]:
             max_c = 0.0
 
         ranked: list[CandidateScore] = []
-        for c, cs in zip(index, content_scores):
+        for ci, (c, cs) in enumerate(zip(index, content_scores)):
             fn_target = ref.title or ref.label
             filename_score = fuzz.token_set_ratio(fn_target.lower(), c.filename.lower())
-
             content_score = (cs / max_c * 100.0) if max_c > 0 else 0.0
+
+            if sim_matrix is not None:
+                # Cosine sim in [-1, 1]; map to [0, 100].
+                sim = float(sim_matrix[ri, ci])
+                semantic_score = max(0.0, min(1.0, (sim + 1.0) / 2.0)) * 100.0
+            else:
+                semantic_score = 0.0
 
             date_hits = len(ref_dates & c.dates)
             noun_hits = len(ref_nouns & c.nouns)
-            # Saturating bonuses
             date_score = min(date_hits, 3) / 3.0 * 100.0
             noun_score = min(noun_hits, 6) / 6.0 * 100.0
 
             label_hit = _label_in_text(ref.label, c.filename + " " + c.text[:600])
 
-            combined = (
-                0.55 * content_score
-                + 0.20 * date_score
-                + 0.10 * noun_score
-                + 0.15 * filename_score
-            )
+            if have_semantic:
+                combined = (
+                    0.55 * semantic_score
+                    + 0.20 * content_score
+                    + 0.10 * date_score
+                    + 0.05 * noun_score
+                    + 0.10 * filename_score
+                )
+            else:
+                # Fall back to the v0.3 weighting if the embedder isn't available.
+                combined = (
+                    0.55 * content_score
+                    + 0.20 * date_score
+                    + 0.10 * noun_score
+                    + 0.15 * filename_score
+                )
             if label_hit:
                 combined = min(100.0, combined + 6.0)
 
@@ -223,6 +275,7 @@ def match_all(refs: list[Reference], pool: list[Path]) -> list[MatchResult]:
                 score=round(min(combined, 100.0), 1),
                 filename_score=round(filename_score, 1),
                 content_score=round(content_score, 1),
+                semantic_score=round(semantic_score, 1),
                 date_overlap=date_hits,
                 noun_overlap=noun_hits,
                 label_hit=label_hit,

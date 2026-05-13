@@ -224,6 +224,7 @@ class ReviewStep(QWidget):
                 cs = CandidateScore(
                     path=Path(chosen), score=100.0,
                     filename_score=100.0, content_score=0.0,
+                    semantic_score=0.0,
                     date_overlap=0, noun_overlap=0, label_hit=False,
                 )
             rest = [c for c in mr.ranked if str(c.path) != chosen]

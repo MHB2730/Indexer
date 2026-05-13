@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 
 from .. import __version__
 from ..logging_setup import log_dir
+from ..embedder import MODEL_NAME, is_available as embedder_available
 from ..ocr import is_available as tesseract_available, tesseract_path
 
 
@@ -77,6 +78,11 @@ class AboutDialog(QDialog):
         cl.setContentsMargins(18, 14, 18, 14)
         cl.setSpacing(6)
 
+        cl.addWidget(self._cap_row(
+            f"Semantic matching ({MODEL_NAME})",
+            embedder_available(),
+            "Embeddings used to rank candidate files by meaning, not just keywords.",
+        ))
         cl.addWidget(self._cap_row(
             "Optical Character Recognition (Tesseract)",
             tesseract_available(),

@@ -11,6 +11,7 @@ PROJECT_ROOT = Path(SPECPATH).resolve().parent
 SRC = PROJECT_ROOT / "src"
 ASSETS = SRC / "indexer" / "assets"
 VENDOR_TESS = PROJECT_ROOT / "vendor" / "tesseract"
+VENDOR_EMB = PROJECT_ROOT / "vendor" / "embedding-model"
 
 hidden = collect_submodules("rank_bm25") + collect_submodules("rapidfuzz")
 
@@ -21,6 +22,7 @@ a = Analysis(
     datas=(
         [(str(ASSETS), "indexer/assets")]
         + ([(str(VENDOR_TESS), "tesseract")] if VENDOR_TESS.is_dir() else [])
+        + ([(str(VENDOR_EMB), "embedding-model")] if VENDOR_EMB.is_dir() else [])
     ),
     hiddenimports=hidden,
     hookspath=[],
