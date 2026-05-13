@@ -10,6 +10,7 @@ from PyInstaller.utils.hooks import collect_submodules
 PROJECT_ROOT = Path(SPECPATH).resolve().parent
 SRC = PROJECT_ROOT / "src"
 ASSETS = SRC / "indexer" / "assets"
+VENDOR_TESS = PROJECT_ROOT / "vendor" / "tesseract"
 
 hidden = collect_submodules("rank_bm25") + collect_submodules("rapidfuzz")
 
@@ -17,9 +18,10 @@ a = Analysis(
     [str(PROJECT_ROOT / "packaging" / "launcher.py")],
     pathex=[str(SRC)],
     binaries=[],
-    datas=[
-        (str(ASSETS), "indexer/assets"),
-    ],
+    datas=(
+        [(str(ASSETS), "indexer/assets")]
+        + ([(str(VENDOR_TESS), "tesseract")] if VENDOR_TESS.is_dir() else [])
+    ),
     hiddenimports=hidden,
     hookspath=[],
     runtime_hooks=[],

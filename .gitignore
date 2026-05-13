@@ -17,6 +17,9 @@ packaging/Output/
 src/indexer/assets/icon.png
 src/indexer/assets/icon.ico
 
+# Bundled Tesseract (fetched by scripts/fetch_tesseract.ps1)
+vendor/
+
 # Test fixtures and outputs
 tests/fixtures/
 tests/out/

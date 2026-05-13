@@ -41,6 +41,9 @@ Write-Host ">>> Installing dependencies" -ForegroundColor Cyan
 & $python -m pip install -r "$Root\requirements.txt"
 & $python -m pip install pyside6 pillow pyinstaller
 
+Write-Host ">>> Fetching Tesseract OCR (bundled into the installer)" -ForegroundColor Cyan
+& powershell -ExecutionPolicy Bypass -File "$Root\scripts\fetch_tesseract.ps1"
+
 Write-Host ">>> Rendering brand icons" -ForegroundColor Cyan
 & $python "$Root\scripts\make_icons.py"
 

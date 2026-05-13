@@ -47,6 +47,10 @@ jobs:
           pip install -r requirements.txt
           pip install pillow pyinstaller
 
+      - name: Fetch Tesseract OCR for bundling
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/fetch_tesseract.ps1
+
       - name: Render brand icons
         run: python scripts/make_icons.py
 
