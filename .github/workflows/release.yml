@@ -47,9 +47,34 @@ jobs:
           pip install -r requirements.txt
           pip install pillow pyinstaller
 
-      - name: Fetch Tesseract OCR for bundling
+      - name: Install Tesseract via Chocolatey
         shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File scripts/fetch_tesseract.ps1
+        run: |
+          choco install tesseract --no-progress -y --version=5.4.0.20240606
+          $tess = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+          if (-not (Test-Path $tess)) {
+            Write-Error "Tesseract install path not found after choco install."
+            exit 1
+          }
+          & $tess --version
+
+      - name: Stage Tesseract into vendor/tesseract
+        shell: pwsh
+        run: |
+          $src = "C:\Program Files\Tesseract-OCR"
+          $dst = "vendor\tesseract"
+          if (Test-Path $dst) { Remove-Item $dst -Recurse -Force }
+          New-Item -ItemType Directory -Path $dst | Out-Null
+          Copy-Item -Path (Join-Path $src "*") -Destination $dst -Recurse -Force
+          Get-ChildItem $dst | Select-Object -First 5
+          if (-not (Test-Path (Join-Path $dst "tesseract.exe"))) {
+            Write-Error "tesseract.exe missing from $dst after copy."
+            exit 1
+          }
+          if (-not (Test-Path (Join-Path $dst "tessdata\eng.traineddata"))) {
+            Write-Error "tessdata/eng.traineddata missing from $dst after copy."
+            exit 1
+          }
 
       - name: Render brand icons
         run: python scripts/make_icons.py
