@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "indexer"
+version = "0.1.0"
+description = "Offline legal bundle assembler"
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf>=1.24",
+    "python-docx>=1.1",
+    "rapidfuzz>=3.9",
+    "rank-bm25>=0.2.2",
+    "dateparser>=1.2",
+    "click>=8.1",
+    "PySide6>=6.6",
+]
+
+[project.scripts]
+indexer = "indexer.cli:cli"
+
+[project.gui-scripts]
+indexer-app = "indexer.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

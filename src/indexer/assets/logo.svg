@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <rect width="256" height="256" rx="48" fill="#1F3A5F"/>
+  <!-- Stack of pages -->
+  <rect x="64" y="56" width="112" height="144" rx="6" fill="#F8FAFC" opacity="0.35"/>
+  <rect x="76" y="68" width="112" height="144" rx="6" fill="#F8FAFC" opacity="0.6"/>
+  <rect x="88" y="80" width="112" height="144" rx="6" fill="#FFFFFF"/>
+  <!-- Index lines on top page -->
+  <rect x="104" y="104" width="80" height="6" rx="3" fill="#1F3A5F"/>
+  <rect x="104" y="124" width="64" height="4" rx="2" fill="#94A3B8"/>
+  <rect x="104" y="138" width="72" height="4" rx="2" fill="#94A3B8"/>
+  <rect x="104" y="152" width="56" height="4" rx="2" fill="#94A3B8"/>
+  <rect x="104" y="166" width="68" height="4" rx="2" fill="#94A3B8"/>
+  <!-- Gold bookmark accent -->
+  <path d="M180 56 L208 56 L208 112 L194 100 L180 112 Z" fill="#B7791F"/>
+</svg>
